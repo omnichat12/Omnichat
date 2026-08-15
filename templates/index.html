@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>OmniChat</title>
+    <style>
+        body { font-family: sans-serif; display: flex; height: 100vh; margin: 0; background: #efeae2; }
+        .sidebar { width: 300px; background: #fff; display: flex; flex-direction: column; border-right: 1px solid #ddd; }
+        .tab-btn { padding: 15px; cursor: pointer; text-align: center; border-bottom: 2px solid transparent; }
+        .tab-btn.active { border-bottom: 2px solid #00a884; }
+        .list-container { flex: 1; overflow-y: auto; }
+        .item-row { padding: 15px; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; }
+        .main-chat { flex: 1; display: flex; flex-direction: column; }
+        .chat-box { flex: 1; padding: 20px; overflow-y: auto; }
+        .chat-input { padding: 20px; display: flex; gap: 10px; }
+    </style>
+</head>
+<body>
+    <div class="sidebar">
+        <div style="padding: 15px; display: flex; justify-content: space-between;">
+            <span>Usuario: <b>{{ username }}</b></span>
+            <a href="/logout" style="color: red;">Salir</a>
+        </div>
+        <input type="text" id="user-search" placeholder="Buscar amigos..." style="margin: 10px;">
+        <div style="display: flex;">
+            <div class="tab-btn active" onclick="switchTab('chats')">Chats</div>
+            <div class="tab-btn" onclick="switchTab('notifications')">Notificaciones</div>
+        </div>
+        <div class="list-container" id="sidebar-list"></div>
+    </div>
+    <div class="main-chat">
+        <div id="chat-title" style="padding: 15px; background: #f0f2f5;">Chat con: Sala General</div>
+        <div class="chat-box" id="chat-box"></div>
+        <div class="chat-input">
+            <input type="text" id="msg-input" style="flex:1;">
+            <button onclick="sendMessage()">Enviar</button>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
+    <script>
+        const socket = io();
+        let currentChat = 'Sala General';
+
+        socket.on('connect', () => console.log("Conectado al servidor de socket"));
+
+        function switchTab(tab) {
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            event.target.classList.add('active');
+            if(tab === 'chats') loadFriends(); else loadNotifications();
+        }
+
+        function loadFriends() {
+            fetch('/get_friends').then(r => r.json()).then(data => {
+                let html = `<div class="item-row" onclick="setChat('Sala General')">Sala General</div>`;
+                data.friends.forEach(f => html += `<div class="item-row" onclick="setChat('${f}')">${f}</div>`);
+                document.getElementById('sidebar-list').innerHTML = html;
+            });
+        }
+
+        function loadNotifications() {
+            fetch('/get_notifications').then(r => r.json()).then(data => {
+                let html = '';
+                data.requests.forEach(r => html += `<div class="item-row">${r} <button onclick="accept('${r}')">Aceptar</button></div>`);
+                document.getElementById('sidebar-list').innerHTML = html;
+            });
+        }
+
+        function setChat(name) {
+            currentChat = name;
+            document.getElementById('chat-title').innerText = "Chat con: " + name;
+            document.getElementById('chat-box').innerHTML = '';
+        }
+
+        function accept(sender) {
+            fetch('/accept_friend_request', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({sender})})
+            .then(() => loadNotifications());
+        }
+
+        function sendFriendRequest(u) {
+            fetch('/send_friend_request', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({receiver:u})})
+            .then(r => r.json()).then(data => { if(data.success) alert("Solicitud enviada"); });
+        }
+
+        function sendMessage() {
+            const msg = document.getElementById('msg-input').value;
+            socket.emit('message', {username: '{{ username }}', msg: msg, recipient: currentChat});
+            document.getElementById('msg-input').value = '';
+        }
+
+        // RECEPTOR DE MENSAJES (SIN FILTROS)
+        socket.on('message', (data) => {
+            console.log("Mensaje recibido por socket:", data);
+            const chatBox = document.getElementById('chat-box');
+            chatBox.innerHTML += `<div><b>${data.username}:</b> ${data.msg}</div>`;
+        });
+
+        document.getElementById('user-search').addEventListener('input', (e) => {
+            fetch('/search_user', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({query: e.target.value})})
+            .then(r => r.json()).then(data => {
+                let html = '';
+                data.users.forEach(u => html += `<div class="item-row">${u} <button onclick="sendFriendRequest('${u}')">Agregar</button></div>`);
+                document.getElementById('sidebar-list').innerHTML = html;
+            });
+        });
+
+        loadFriends();
+    </script>
+</body>
+</html>

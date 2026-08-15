@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Iniciar Sesión - OmniChat</title>
+    <style>
+        body { font-family: Arial, sans-serif; background: #0f172a; color: #fff; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
+        .card { background: #1e293b; padding: 30px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.5); width: 300px; text-align: center; }
+        input { width: 90%; padding: 10px; margin: 10px 0; border: 1px solid #475569; border-radius: 6px; background: #0f172a; color: #fff; }
+        button { width: 95%; padding: 10px; background: #3b82f6; border: none; border-radius: 6px; color: #fff; font-weight: bold; cursor: pointer; }
+        button:hover { background: #2563eb; }
+        a { color: #60a5fa; text-decoration: none; }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <h2>Iniciar Sesión</h2>
+        <form method="POST">
+            <input type="text" name="username" placeholder="Usuario" required><br>
+            <input type="password" name="password" placeholder="Contraseña" required><br>
+            <button type="submit">Entrar</button>
+        </form>
+        <p>¿No tienes cuenta? <a href="/register">Regístrate aquí</a></p>
+    </div>
+</body>
+</html>
